@@ -44,41 +44,6 @@
                 });
             }
         });
-
-        document.getElementById("formConsulta").addEventListener("submit", function (event) {
-            event.preventDefault(); // Evita o comportamento padrão de enviar o formulário
-            var cidade = document.getElementById("cidade").value;
-            consultarPrevisao(cidade);
-        });
-
-
-        function consultarPrevisao(cidade) {
-            // Cria um objeto com os dados a serem enviados no corpo da requisição
-            var data = {
-                cidade: cidade
-            };
-
-            // Configuração da requisição
-            var requestOptions = {
-                method: 'POST', // Ou 'GET', 'PUT', 'DELETE', dependendo do método que seu backend espera
-                headers: {
-                    'Content-Type': 'application/json' // Tipo de conteúdo da requisição
-                },
-                body: JSON.stringify(data) // Converte o objeto para JSON
-            };
-
-            // Envia a requisição para o backend
-            fetch('/previsao/localizacao', requestOptions)
-                .then(response => response.json())
-                .then(data => {
-                    // Manipula a resposta do backend
-                    console.log(data);
-                })
-                .catch(error => {
-                    // Manipula erros
-                    console.error('Erro:', error);
-                });
-        }
     </script>
 </body>
 
