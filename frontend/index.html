@@ -4,11 +4,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--Dependências do OpenLayers-->
+    <script src="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.min.css" rel="stylesheet">
 
     <title>Previsão Meteorológica</title>
 </head>
 
 <body style="margin: 0; padding: 0; box-sizing: border-box;">
+
+    <!--Container do mapa-->
+    <div id="map" style="width: 100vw; height: 95vh;"></div>
+
+    <!--Formulário para inserir o nome da cidade-->
+    <form id="meuFormulario" style="margin-top: 10px;">
+        <input id="txtCidade" placeholder="Nome da Cidade" type="text">
+        <button type="submit" id="btnConsulta">Consultar</button>
+    </form>
+
+    <script>
+        //Script que exibe o mapa na página WEB
+        document.addEventListener("DOMContentLoaded", function () {
+
+            if (typeof ol === 'undefined') {
+                console.error('OpenLayers não foi carregado corretamente.');
+            } else {
+                // Inicializar o mapa
+                map = new ol.Map({
+                    target: 'map', // Id do contêiner do mapa
+                    layers: [
+                        new ol.layer.Tile({
+                            source: new ol.source.OSM() // Usando a camada OpenStreetMap
+                        })
+                    ],
+                    view: new ol.View({
+                        center: ol.proj.fromLonLat([-0.1276, 51.5074]), // Coordenadas de Londres (longitude, latitude)
+                        zoom: 10 // Nível de zoom inicial
+                    })
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>
