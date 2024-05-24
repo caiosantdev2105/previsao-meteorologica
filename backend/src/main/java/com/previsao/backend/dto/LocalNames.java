@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+//Classe para modificações do campo ignorado LocalNames
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalNames {
     private Map<String, String> names;

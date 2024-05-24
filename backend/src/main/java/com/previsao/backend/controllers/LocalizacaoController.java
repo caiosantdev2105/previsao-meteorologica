@@ -16,6 +16,7 @@ public class LocalizacaoController {
     @Autowired
     private LocalizacaoServices servicosLocalizacao;
 
+    //Rota POST para recebimento do nome da cidade e envio para o service que efetua a conversão para coordenadas
     @PostMapping("/backend/coordenadas")
     public List<LocalizacaoDTO> getCoordenadas(@RequestBody String nomeCidade) throws Exception {
 
