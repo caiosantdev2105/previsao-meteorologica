@@ -7,6 +7,8 @@ public class ClimaDTO {
     private double max;
     private double min;
     private String condition;
+    private double rain_probability;
+    private String moon_phase;
 
     public String getCity_name() {
         return city_name;
@@ -71,8 +73,5 @@ public class ClimaDTO {
     public void setMoon_phase(String moon_phase) {
         this.moon_phase = moon_phase;
     }
-
-    private double rain_probability;
-    private String moon_phase;
 
 }

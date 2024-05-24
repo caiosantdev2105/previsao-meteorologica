@@ -5,46 +5,202 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!--Dependências do OpenLayers-->
-    <script src="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.css" rel="stylesheet">
 
     <title>Previsão Meteorológica</title>
+
+    <style>
+        .div-infos-clima {
+            width: 20rem;
+            height: 40rem;
+            background-color: white;
+            font-size: medium;
+            z-index: 1;
+        }
+
+        body {
+            font-family: sans-serif;
+        }
+    </style>
 </head>
 
 <body style="margin: 0; padding: 0; box-sizing: border-box;">
 
     <!--Container do mapa-->
-    <div id="map" style="width: 100vw; height: 95vh;"></div>
+    <div id="map" style="width: 100vw; z-index: 0; ; height: 95vh;"></div>
 
     <!--Formulário para inserir o nome da cidade-->
     <form id="meuFormulario" style="margin-top: 10px;">
         <input id="txtCidade" placeholder="Nome da Cidade" type="text">
         <button type="submit" id="btnConsulta">Consultar</button>
+        <select name="selectConsultados" id="selectConsultados"></select>
     </form>
 
-    <script>
-        //Script que exibe o mapa na página WEB
-        document.addEventListener("DOMContentLoaded", function () {
+    <script type="text/javascript" charset="UTF-8">
 
-            if (typeof ol === 'undefined') {
-                console.error('OpenLayers não foi carregado corretamente.');
-            } else {
-                // Inicializar o mapa
-                map = new ol.Map({
-                    target: 'map', // Id do contêiner do mapa
-                    layers: [
-                        new ol.layer.Tile({
-                            source: new ol.source.OSM() // Usando a camada OpenStreetMap
-                        })
-                    ],
-                    view: new ol.View({
-                        center: ol.proj.fromLonLat([-0.1276, 51.5074]), // Coordenadas de Londres (longitude, latitude)
-                        zoom: 10 // Nível de zoom inicial
+        var latitude;
+        var longitude;
+        var infosClima = [];
+        var nomeCidade = document.getElementById("txtCidade").value
+
+        //Script que exibe o mapa na página WEB
+
+        if (typeof ol === 'undefined') {
+            console.error('OpenLayers não foi carregado corretamente.');
+        } else {
+            // Inicializar o mapa
+            map = new ol.Map({
+                target: 'map', // Id do contêiner do mapa
+                layers: [
+                    new ol.layer.Tile({
+                        source: new ol.source.OSM() // Usando a camada OpenStreetMap
                     })
-                });
-            }
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([-0.1276, 51.5074]), // Coordenadas de Londres (longitude, latitude)
+                    zoom: 10 // Nível de zoom inicial
+                })
+            });
+        }
+
+        document.getElementById("meuFormulario").addEventListener("submit", function (event) {
+            event.preventDefault(); // Impede o envio padrão do formulário
+
+            var resposta;
+            nomeCidade = document.getElementById("txtCidade").value;
+            // Função para fazer uma requisição POST
+
+            fazerRequisicaoPOST();
+            fazerRequisicaoGET();
         });
+        function fazerRequisicaoPOST() {
+            // Acessar o valor do campo de entrada quando o formulário é submetido
+            console.log("Fez o post ", nomeCidade);
+            // Fazer a requisição POST
+            fetch('http://localhost:3000/backend/coordenadas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                },
+                body: nomeCidade
+            })
+                .then(response => { //Recebe a resposta da requisição
+                    if (!response.ok) {
+                        throw new Error('Erro ao fazer a requisição: ' + response.status);
+                    }
+                    return response.json(); // retorna uma Promise que resolve com os dados JSON
+                })
+                .then(data => {
+                    //Recupera os dados de longitude e latitude
+                    lat = data[0]["lat"]
+                    lon = data[0]["lon"]
+
+                    //Move o mapa até a cidade
+                    map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
+                })
+                .catch(error => {
+                    console.error('Erro ao fazer a requisição:', error);
+                })
+        }
+
+
+        function fazerRequisicaoGET() {
+
+            fetch(`http://localhost:3000/backend/clima?cidade=${nomeCidade}`, {
+                headers: {
+                    'Content-Type': 'application/json; charset=UTF-8'
+                }
+            },
+            )
+                .then(response => { //Recebe a resposta da requisição
+                    if (!response.ok) {
+                        throw new Error('Erro ao fazer a requisição: ' + response.status);
+                    }
+                    return response.json();//Converte a resposta da requisição
+                })
+                .then(data => { //Permite o acesso ao conteudo da resposta da req
+                    infosClima = [
+                        //Armazena os dados da cidade no dia de consulta e dos próximos três dias
+                        atual = {
+                            "nome": data.city_name,
+                            "data": data.date,
+                            "temp": data.temp,
+                            "max": data.forecast[0].max,
+                            "min": data.forecast[0].min,
+                            "chuva": data.forecast[0].rain_probability + "%",
+                            "condicao": data.forecast[0].description,
+                            "lua": data.moon_phase
+                        },
+
+                        amanha = {
+                            "nome": data.city_name,
+                            "data": data.forecast[1].date,
+                            "max": data.forecast[1].max,
+                            "min": data.forecast[1].min,
+                            "chuva": data.forecast[1].rain_probability + "%",
+                            "condicao": data.forecast[1].description,
+                        },
+
+                        doisDiasDepois = {
+                            "nome": data.city_name,
+                            "data": data.forecast[2].date,
+                            "max": data.forecast[2].max,
+                            "min": data.forecast[2].min,
+                            "chuva": data.forecast[2].rain_probability + "%",
+                            "condicao": data.forecast[2].description,
+                        },
+                        tresDiasDepois = {
+                            "nome": data.city_name,
+                            "data": data.forecast[3].date,
+                            "max": data.forecast[3].max,
+                            "min": data.forecast[3].min,
+                            "chuva": data.forecast[3].rain_probability + "%",
+                            "condicao": data.forecast[3].description,
+                        }
+                    ]
+                    exibirInformações();
+                },
+
+                )
+                .catch(error => {
+                    console.error('Erro ao fazer a requisição:', error);
+                });
+        }
+
+        function exibirInformações() {
+            // Cria um div para armazenar todas as informações
+            var divInfosClima = document.createElement('div');
+            divInfosClima.classList.add('div-infos-clima');
+
+            // Itera sobre o array infosClima
+            infosClima.forEach(function (info) {
+                // Cria um div para armazenar as informações de um dia
+                var divDia = document.createElement('div');
+                divDia.classList.add('info-dia');
+
+                // Adiciona as informações do dia dentro da divDia
+                divDia.innerHTML = `
+            <h2>${info.nome}</h2>
+            <p>Data: ${info.data}</p>
+            <p>Temperatura Máxima: ${info.max}</p>
+            <p>Temperatura Mínima: ${info.min}</p>
+            <p>Probabilidade de Chuva: ${info.chuva}</p>
+            <p>Condição: ${info.condicao}</p>
+        `;
+
+                // Adiciona a divDia à divInfosClima
+                divInfosClima.appendChild(divDia);
+            });
+
+            // Adiciona divInfosClima ao corpo do documento (ou outro elemento)
+            document.body.appendChild(divInfosClima);
+        }
+
+
     </script>
+
+
 </body>
 
 </html>

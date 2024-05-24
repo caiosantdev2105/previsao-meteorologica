@@ -13,16 +13,16 @@ import com.previsao.backend.services.LocalizacaoServices;
 @RestController
 public class LocalizacaoController {
 
+    private final LocalizacaoServices servicosLocalizacao;
+
     @Autowired
-    private LocalizacaoServices servicosLocalizacao;
-
-    //Rota POST para recebimento do nome da cidade e envio para o service que efetua a conversão para coordenadas
-    @PostMapping("/backend/coordenadas")
-    public List<LocalizacaoDTO> getDadosCidade(@RequestBody String nomeCidade) throws Exception {
-
-        List<LocalizacaoDTO> resposta = servicosLocalizacao.getLocalizacao(nomeCidade);
-
-        return resposta;
+    public LocalizacaoController(LocalizacaoServices servicosLocalizacao) {
+        this.servicosLocalizacao = servicosLocalizacao;
     }
 
+    @PostMapping("/backend/coordenadas")
+    public List<LocalizacaoDTO> getDadosCidade(@RequestBody String nomeCidade) throws Exception {
+        List<LocalizacaoDTO> resposta = servicosLocalizacao.getLocalizacao(nomeCidade);
+        return resposta;
+    }
 }
