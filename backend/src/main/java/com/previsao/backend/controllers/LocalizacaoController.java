@@ -15,7 +15,6 @@ public class LocalizacaoController {
 
     private final LocalizacaoServices servicosLocalizacao;
 
-    @Autowired
     public LocalizacaoController(LocalizacaoServices servicosLocalizacao) {
         this.servicosLocalizacao = servicosLocalizacao;
     }

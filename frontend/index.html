@@ -2,25 +2,110 @@
 <html lang="pt-br">
 
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!--Dependências do OpenLayers-->
     <script src="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/openlayers@4.6.5/dist/ol.css" rel="stylesheet">
-
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8" />
     <title>Previsão Meteorológica</title>
 
     <style>
-        .div-infos-clima {
-            width: 20rem;
-            height: 40rem;
-            background-color: white;
-            font-size: medium;
-            z-index: 1;
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
-        body {
-            font-family: sans-serif;
+        #meuFormulario {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #div-infos-clima {
+            width: auto;
+            max-width: 300px;
+            /* ajuste a largura conforme necessário */
+            background-color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            /* para garantir que fique sobre o mapa */
+        }
+
+        #infos-dias-proximos {
+            display: none;
+            width: fit-content;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            padding: 15px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 1000000;
+        }
+
+        #div-infos-clima img {
+            display: block;
+            margin: 10px auto;
+            max-width: 80px;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #div-infos-clima p {
+            margin: 5px 0;
+        }
+
+        #map-container {
+            position: relative;
+            height: 100vh;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-dia {
+            display: none;
+            display: inline-block;
+            vertical-align: top;
+            margin-right: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        #btnProximosDias {
+            margin-top: 15px;
+            background-color: #f0f0f0;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #btnProximosDias:hover {
+            background-color: #e0e0e0;
+        }
+
+        .imgIcon {
+            width: 50px;
+            height: 50px;
         }
     </style>
 </head>
@@ -28,24 +113,33 @@
 <body style="margin: 0; padding: 0; box-sizing: border-box;">
 
     <!--Container do mapa-->
-    <div id="map" style="width: 100vw; z-index: 0; ; height: 95vh;"></div>
+    <div id="map-container">
+        <div id="map"></div>
+        <!--Formulário para inserir o nome da cidade-->
+        <form id="meuFormulario">
+            <input id="txtCidade" placeholder="Nome da Cidade" type="text">
+            <button type="submit" id="btnConsulta">Consultar</button>
+            <select name="selectConsultados" id="selectConsultados"></select>
+        </form>
+    </div>
 
-    <!--Formulário para inserir o nome da cidade-->
-    <form id="meuFormulario" style="margin-top: 10px;">
-        <input id="txtCidade" placeholder="Nome da Cidade" type="text">
-        <button type="submit" id="btnConsulta">Consultar</button>
-        <select name="selectConsultados" id="selectConsultados"></select>
-    </form>
+    <div id="div-infos-clima"></div>
+    <div id="infos-dias-proximos"></div>
 
     <script type="text/javascript" charset="UTF-8">
 
+        // Variáveis globais para armazenar dados de latitude e longitude
         var latitude;
         var longitude;
+
+        // Variáveis globais para armazenar dados de clima e fase da lua
         var infosClima = [];
-        var nomeCidade = document.getElementById("txtCidade").value
 
-        //Script que exibe o mapa na página WEB
+        // Variável global para armazenar o nome da cidade
+        var nomeCidade = '';
 
+        // Inicialização do mapa
+        var map;
         if (typeof ol === 'undefined') {
             console.error('OpenLayers não foi carregado corretamente.');
         } else {
@@ -64,20 +158,17 @@
             });
         }
 
+        // Evento de submissão do formulário
         document.getElementById("meuFormulario").addEventListener("submit", function (event) {
             event.preventDefault(); // Impede o envio padrão do formulário
 
-            var resposta;
             nomeCidade = document.getElementById("txtCidade").value;
-            // Função para fazer uma requisição POST
-
             fazerRequisicaoPOST();
             fazerRequisicaoGET();
         });
+
+        // Função para fazer a requisição POST
         function fazerRequisicaoPOST() {
-            // Acessar o valor do campo de entrada quando o formulário é submetido
-            console.log("Fez o post ", nomeCidade);
-            // Fazer a requisição POST
             fetch('http://localhost:3000/backend/coordenadas', {
                 method: 'POST',
                 headers: {
@@ -85,122 +176,159 @@
                 },
                 body: nomeCidade
             })
-                .then(response => { //Recebe a resposta da requisição
-                    if (!response.ok) {
-                        throw new Error('Erro ao fazer a requisição: ' + response.status);
-                    }
-                    return response.json(); // retorna uma Promise que resolve com os dados JSON
-                })
+                .then(response => response.json())
                 .then(data => {
                     //Recupera os dados de longitude e latitude
-                    lat = data[0]["lat"]
-                    lon = data[0]["lon"]
+                    latitude = data[0]["lat"];
+                    longitude = data[0]["lon"];
 
                     //Move o mapa até a cidade
-                    map.getView().setCenter(ol.proj.fromLonLat([lon, lat]));
+                    map.getView().setCenter(ol.proj.fromLonLat([longitude, latitude]));
+
+                    // Posiciona a imagem da lua
+                    definirImagemLua();
                 })
                 .catch(error => {
                     console.error('Erro ao fazer a requisição:', error);
-                })
+                });
         }
 
-
+        // Função para fazer a requisição GET
+        // Função para fazer a requisição GET
         function fazerRequisicaoGET() {
-
             fetch(`http://localhost:3000/backend/clima?cidade=${nomeCidade}`, {
                 headers: {
                     'Content-Type': 'application/json; charset=UTF-8'
                 }
-            },
-            )
-                .then(response => { //Recebe a resposta da requisição
-                    if (!response.ok) {
-                        throw new Error('Erro ao fazer a requisição: ' + response.status);
-                    }
-                    return response.json();//Converte a resposta da requisição
-                })
-                .then(data => { //Permite o acesso ao conteudo da resposta da req
+            })
+                .then(response => response.json())
+                .then(data => {
                     infosClima = [
-                        //Armazena os dados da cidade no dia de consulta e dos próximos três dias
                         atual = {
                             "nome": data.city_name,
                             "data": data.date,
-                            "temp": data.temp,
-                            "max": data.forecast[0].max,
-                            "min": data.forecast[0].min,
+                            "temp": data.temp + "ºC",
+                            "max": data.forecast[0].max + "ºC",
+                            "min": data.forecast[0].min + "ºC",
                             "chuva": data.forecast[0].rain_probability + "%",
                             "condicao": data.forecast[0].description,
                             "lua": data.moon_phase
                         },
-
                         amanha = {
                             "nome": data.city_name,
                             "data": data.forecast[1].date,
-                            "max": data.forecast[1].max,
-                            "min": data.forecast[1].min,
+                            "max": data.forecast[1].max + "ºC",
+                            "min": data.forecast[1].min + "ºC",
                             "chuva": data.forecast[1].rain_probability + "%",
                             "condicao": data.forecast[1].description,
                         },
-
                         doisDiasDepois = {
                             "nome": data.city_name,
                             "data": data.forecast[2].date,
-                            "max": data.forecast[2].max,
-                            "min": data.forecast[2].min,
+                            "max": data.forecast[2].max + "ºC",
+                            "min": data.forecast[2].min + "ºC",
                             "chuva": data.forecast[2].rain_probability + "%",
                             "condicao": data.forecast[2].description,
                         },
                         tresDiasDepois = {
                             "nome": data.city_name,
                             "data": data.forecast[3].date,
-                            "max": data.forecast[3].max,
-                            "min": data.forecast[3].min,
+                            "max": data.forecast[3].max + "ºC",
+                            "min": data.forecast[3].min + "ºC",
                             "chuva": data.forecast[3].rain_probability + "%",
                             "condicao": data.forecast[3].description,
                         }
-                    ]
-                    exibirInformações();
-                },
+                    ];
 
-                )
+                    // Exibe as informações
+                    exibirInformacoes();
+                })
                 .catch(error => {
                     console.error('Erro ao fazer a requisição:', error);
                 });
         }
 
-        function exibirInformações() {
-            // Cria um div para armazenar todas as informações
-            var divInfosClima = document.createElement('div');
-            divInfosClima.classList.add('div-infos-clima');
 
-            // Itera sobre o array infosClima
-            infosClima.forEach(function (info) {
-                // Cria um div para armazenar as informações de um dia
-                var divDia = document.createElement('div');
-                divDia.classList.add('info-dia');
+        // Função para exibir as informações
+        function exibirInformacoes() {
+            var divInfosClima = document.getElementById('div-infos-clima');
+            divInfosClima.innerHTML = '';
 
-                // Adiciona as informações do dia dentro da divDia
-                divDia.innerHTML = `
-            <h2>${info.nome}</h2>
-            <p>Data: ${info.data}</p>
-            <p>Temperatura Máxima: ${info.max}</p>
-            <p>Temperatura Mínima: ${info.min}</p>
-            <p>Probabilidade de Chuva: ${info.chuva}</p>
-            <p>Condição: ${info.condicao}</p>
-        `;
+            // Adiciona as informações do dia atual
+            var divDiaAtual = criarDivDia(atual);
+            divInfosClima.appendChild(divDiaAtual);
 
-                // Adiciona a divDia à divInfosClima
-                divInfosClima.appendChild(divDia);
-            });
-
-            // Adiciona divInfosClima ao corpo do documento (ou outro elemento)
-            document.body.appendChild(divInfosClima);
+            // Adiciona um botão para consultar os próximos três dias
+            var btnProximosDias = document.createElement('button');
+            btnProximosDias.setAttribute('id', 'btnProximosDias');
+            btnProximosDias.textContent = 'Consultar Próximos 3 Dias';
+            btnProximosDias.addEventListener('click', toggleProximosDias);
+            divInfosClima.appendChild(btnProximosDias);
         }
 
+        // Função para criar a div com as informações do dia
+        function criarDivDia(dia) {
+            var divDia = document.createElement('div');
+            divDia.classList.add('info-dia');
+            divDia.innerHTML = `
+                <p><strong>Nome da Cidade: ${dia.nome}</strong></p>
+                <p>Data: ${dia.data}</p>
+                <p>Temperatura Atual: ${dia.temp}</p>
+                <p>Temperatura Máxima: ${dia.max}</p>
+                <p>Temperatura Mínima: ${dia.min}</p>
+                <p>Tipo de Clima Atual: ${dia.condicao}</p>
+                <p>Probabilidade de Chuva: ${dia.chuva}</p>
+                <p style="align-tems: center;">Fase de Lua: <img src='./imgs/luas/${dia.lua}.png' class='imgIcon'></p>
+            `;
+            return divDia;
+        }
+
+        // Função para exibir as informações dos próximos três dias
+        function exibirProximosDias() {
+            var divInfosProximosDias = document.getElementById('infos-dias-proximos');
+            divInfosProximosDias.innerHTML = '';
+
+            // Adiciona as informações dos próximos três dias
+            var divAmanha = criarDivDiaSemTemp(amanha);
+            var divDoisDiasDepois = criarDivDiaSemTemp(doisDiasDepois);
+            var divTresDiasDepois = criarDivDiaSemTemp(tresDiasDepois);
+
+            divInfosProximosDias.appendChild(divAmanha);
+            divInfosProximosDias.appendChild(divDoisDiasDepois);
+            divInfosProximosDias.appendChild(divTresDiasDepois);
+        }
+
+        // Função para criar a div com as informações do dia, excluindo a temperatura atual
+        function criarDivDiaSemTemp(dia) {
+            var divDia = document.createElement('div');
+            divDia.classList.add('info-dia');
+            divDia.innerHTML = `
+                <p><strong>Nome da Cidade: ${dia.nome}</strong></p>
+                <p>Data: ${dia.data}</p>
+                <p>Temperatura Máxima: ${dia.max}</p>
+                <p>Temperatura Mínima: ${dia.min}</p>
+                <p>Probabilidade de Chuva: ${dia.chuva}</p>
+                <p>Clima Previsto: ${dia.condicao}</p>
+            `;
+            return divDia;
+        }
+
+        // Função para alternar a exibição das informações dos próximos três dias
+        function toggleProximosDias() {
+            var btnProximosDias = document.getElementById('btnProximosDias');
+            var divInfosProximosDias = document.getElementById('infos-dias-proximos');
+
+            if (divInfosProximosDias.style.display === 'none' || divInfosProximosDias.style.display === '') {
+                exibirProximosDias();
+                divInfosProximosDias.style.display = 'block';
+                btnProximosDias.textContent = 'Esconder Próximos 3 Dias';
+            } else {
+                divInfosProximosDias.style.display = 'none';
+                btnProximosDias.textContent = 'Consultar Próximos 3 Dias';
+            }
+        }
 
     </script>
-
-
 </body>
 
 </html>
