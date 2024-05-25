@@ -19,7 +19,7 @@ public class ClimaController {
         this.climaService = climaService;
     }
 
-    @GetMapping("/backend/clima")
+    @GetMapping(value="/backend/clima", produces = "application/json;charset=UTF-8")
     public String obterInformacoesClima(@RequestParam("cidade") String nomeCidade) {
         try {
             // Obtém as informações de localização usando LocalizacaoServices
@@ -31,7 +31,7 @@ public class ClimaController {
 
             // Obtém os dados de clima usando ClimaService
             String dadosClima = climaService.obterDadosClima(latitude, longitude);
-
+            System.out.println(dadosClima);
             // Retorna uma resposta com os dados de clima
             return dadosClima;
         } catch (Exception e) {

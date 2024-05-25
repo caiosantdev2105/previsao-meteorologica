@@ -19,7 +19,7 @@ public class LocalizacaoController {
         this.servicosLocalizacao = servicosLocalizacao;
     }
 
-    @PostMapping("/backend/coordenadas")
+    @PostMapping(value="/backend/coordenadas", consumes = "application/json;charset=UTF-8")
     public List<LocalizacaoDTO> getDadosCidade(@RequestBody String nomeCidade) throws Exception {
         List<LocalizacaoDTO> resposta = servicosLocalizacao.getLocalizacao(nomeCidade);
         return resposta;
