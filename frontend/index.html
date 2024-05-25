@@ -44,7 +44,7 @@
 
         #infos-dias-proximos {
             display: none;
-            width: fit-content;
+            width: 900px;
             max-height: calc(100vh - 40px);
             overflow-y: auto;
             padding: 15px;
@@ -128,6 +128,8 @@
 
     <script type="text/javascript" charset="UTF-8">
 
+        window.onclose = localStorage.clear();
+
         // Variáveis globais para armazenar dados de latitude e longitude
         var latitude;
         var longitude;
@@ -138,6 +140,8 @@
         // Variável global para armazenar o nome da cidade
         var nomeCidade = '';
 
+        //Variável global para receber a opção do usuário no select
+        var opt;
         // Inicialização do mapa
         var map;
         if (typeof ol === 'undefined') {
@@ -158,11 +162,29 @@
             });
         }
 
+        // Carregar as cidades consultadas do localStorage ao carregar a página
+        window.onload = function () {
+            var selectConsultados = document.getElementById('selectConsultados');
+            var consultasCacheadas = JSON.parse(localStorage.getItem('consultas')) || {};
+            for (var cidade in consultasCacheadas) {
+                var option = document.createElement('option');
+                option.text = cidade;
+                selectConsultados.add(option);
+            }
+
+
+        };
+
+        // Evento de submissão do formulário
         // Evento de submissão do formulário
         document.getElementById("meuFormulario").addEventListener("submit", function (event) {
             event.preventDefault(); // Impede o envio padrão do formulário
 
             nomeCidade = document.getElementById("txtCidade").value;
+            if (nomeCidade.trim() === '') {
+                alert("Informe uma cidade válida.");
+                return;
+            }
             fazerRequisicaoPOST();
             fazerRequisicaoGET();
         });
@@ -180,20 +202,14 @@
                 .then(data => {
                     //Recupera os dados de longitude e latitude
                     latitude = data[0]["lat"];
-                    longitude = data[0]["lon"];
-
-                    //Move o mapa até a cidade
+                    longitude = data[0]["lon"];                //Move o mapa até a cidade
                     map.getView().setCenter(ol.proj.fromLonLat([longitude, latitude]));
-
-                    // Posiciona a imagem da lua
-                    definirImagemLua();
                 })
                 .catch(error => {
                     console.error('Erro ao fazer a requisição:', error);
                 });
         }
 
-        // Função para fazer a requisição GET
         // Função para fazer a requisição GET
         function fazerRequisicaoGET() {
             fetch(`http://localhost:3000/backend/clima?cidade=${nomeCidade}`, {
@@ -203,51 +219,53 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    infosClima = [
-                        atual = {
-                            "nome": data.city_name,
-                            "data": data.date,
-                            "temp": data.temp + "ºC",
-                            "max": data.forecast[0].max + "ºC",
-                            "min": data.forecast[0].min + "ºC",
-                            "chuva": data.forecast[0].rain_probability + "%",
-                            "condicao": data.forecast[0].description,
-                            "lua": data.moon_phase
-                        },
-                        amanha = {
-                            "nome": data.city_name,
-                            "data": data.forecast[1].date,
-                            "max": data.forecast[1].max + "ºC",
-                            "min": data.forecast[1].min + "ºC",
-                            "chuva": data.forecast[1].rain_probability + "%",
-                            "condicao": data.forecast[1].description,
-                        },
-                        doisDiasDepois = {
-                            "nome": data.city_name,
-                            "data": data.forecast[2].date,
-                            "max": data.forecast[2].max + "ºC",
-                            "min": data.forecast[2].min + "ºC",
-                            "chuva": data.forecast[2].rain_probability + "%",
-                            "condicao": data.forecast[2].description,
-                        },
-                        tresDiasDepois = {
-                            "nome": data.city_name,
-                            "data": data.forecast[3].date,
-                            "max": data.forecast[3].max + "ºC",
-                            "min": data.forecast[3].min + "ºC",
-                            "chuva": data.forecast[3].rain_probability + "%",
-                            "condicao": data.forecast[3].description,
-                        }
+                    infosClima = [{
+                        "nome": data.city,
+                        "data": data.date,
+                        "temp": data.temp + "ºC",
+                        "max": data.forecast[0].max + "ºC",
+                        "min": data.forecast[0].min + "ºC",
+                        "chuva": data.forecast[0].rain_probability + "%",
+                        "condicao": data.forecast[0].description,
+                        "lua": data.moon_phase
+                    },
+                    {
+                        "nome": data.city,
+                        "data": data.forecast[1].date,
+                        "max": data.forecast[1].max + "ºC",
+                        "min": data.forecast[1].min + "ºC",
+                        "chuva": data.forecast[1].rain_probability + "%",
+                        "condicao": data.forecast[1].description,
+                    },
+                    {
+                        "nome": data.city,
+                        "data": data.forecast[2].date,
+                        "max": data.forecast[2].max + "ºC",
+                        "min": data.forecast[2].min + "ºC",
+                        "chuva": data.forecast[2].rain_probability + "%",
+                        "condicao": data.forecast[2].description,
+                    },
+                    {
+                        "nome": data.city,
+                        "data": data.forecast[3].date,
+                        "max": data.forecast[3].max + "ºC",
+                        "min": data.forecast[3].min + "ºC",
+                        "chuva": data.forecast[3].rain_probability + "%",
+                        "condicao": data.forecast[3].description,
+                    }
                     ];
-
                     // Exibe as informações
                     exibirInformacoes();
+
+                    // Adiciona a cidade consultada ao Select
+                    adicionarCidadeAoSelect(data.city);
+                    // Armazena os dados da consulta em cache
+                    cacheConsulta(data.city, infosClima);
                 })
                 .catch(error => {
                     console.error('Erro ao fazer a requisição:', error);
                 });
         }
-
 
         // Função para exibir as informações
         function exibirInformacoes() {
@@ -255,7 +273,7 @@
             divInfosClima.innerHTML = '';
 
             // Adiciona as informações do dia atual
-            var divDiaAtual = criarDivDia(atual);
+            var divDiaAtual = criarDivDia(infosClima[0]);
             divInfosClima.appendChild(divDiaAtual);
 
             // Adiciona um botão para consultar os próximos três dias
@@ -271,15 +289,15 @@
             var divDia = document.createElement('div');
             divDia.classList.add('info-dia');
             divDia.innerHTML = `
-                <p><strong>Nome da Cidade: ${dia.nome}</strong></p>
-                <p>Data: ${dia.data}</p>
-                <p>Temperatura Atual: ${dia.temp}</p>
-                <p>Temperatura Máxima: ${dia.max}</p>
-                <p>Temperatura Mínima: ${dia.min}</p>
-                <p>Tipo de Clima Atual: ${dia.condicao}</p>
-                <p>Probabilidade de Chuva: ${dia.chuva}</p>
-                <p style="align-tems: center;">Fase de Lua: <img src='./imgs/luas/${dia.lua}.png' class='imgIcon'></p>
-            `;
+            <p><strong>Nome da Cidade: ${dia.nome}</strong></p>
+            <p>Data: ${dia.data}</p>
+            <p>Temperatura Atual: ${dia.temp}</p>
+            <p>Temperatura Máxima: ${dia.max}</p>
+            <p>Temperatura Mínima: ${dia.min}</p>
+            <p>Tipo de Clima Atual: ${dia.condicao}</p>
+            <p>Probabilidade de Chuva: ${dia.chuva}</p>
+            <p style="align-tems: center;">Fase de Lua: <img src='./imgs/luas/${dia.lua}.png' class='imgIcon'></p>
+        `;
             return divDia;
         }
 
@@ -289,27 +307,25 @@
             divInfosProximosDias.innerHTML = '';
 
             // Adiciona as informações dos próximos três dias
-            var divAmanha = criarDivDiaSemTemp(amanha);
-            var divDoisDiasDepois = criarDivDiaSemTemp(doisDiasDepois);
-            var divTresDiasDepois = criarDivDiaSemTemp(tresDiasDepois);
+            var divAmanha = criarDivDiaSemTemp(infosClima[1]);
+            var divDoisDiasDepois = criarDivDiaSemTemp(infosClima[2]);
+            var divTresDiasDepois = criarDivDiaSemTemp(infosClima[3]);
 
             divInfosProximosDias.appendChild(divAmanha);
             divInfosProximosDias.appendChild(divDoisDiasDepois);
             divInfosProximosDias.appendChild(divTresDiasDepois);
-        }
-
-        // Função para criar a div com as informações do dia, excluindo a temperatura atual
+        }    // Função para criar a div com as informações do dia, excluindo a temperatura atual
         function criarDivDiaSemTemp(dia) {
             var divDia = document.createElement('div');
             divDia.classList.add('info-dia');
             divDia.innerHTML = `
-                <p><strong>Nome da Cidade: ${dia.nome}</strong></p>
-                <p>Data: ${dia.data}</p>
-                <p>Temperatura Máxima: ${dia.max}</p>
-                <p>Temperatura Mínima: ${dia.min}</p>
-                <p>Probabilidade de Chuva: ${dia.chuva}</p>
-                <p>Clima Previsto: ${dia.condicao}</p>
-            `;
+            <p><strong>Nome da Cidade: ${dia.nome}</strong></p>
+            <p>Data: ${dia.data}</p>
+            <p>Temperatura Máxima: ${dia.max}</p>
+            <p>Temperatura Mínima: ${dia.min}</p>
+            <p>Probabilidade de Chuva: ${dia.chuva}</p>
+            <p>Clima Previsto: ${dia.condicao}</p>
+        `;
             return divDia;
         }
 
@@ -326,6 +342,49 @@
                 divInfosProximosDias.style.display = 'none';
                 btnProximosDias.textContent = 'Consultar Próximos 3 Dias';
             }
+        }
+
+        // Função para adicionar a cidade consultada ao Select
+        function adicionarCidadeAoSelect(nomeCidade) {
+            var selectConsultados = document.getElementById('selectConsultados');
+
+            // Verificar se o nome da cidade já existe no Select
+            var opcoes = selectConsultados.options;
+            var cidadeExistente = false;
+            for (var i = 0; i < opcoes.length; i++) {
+                if (opcoes[i].text === nomeCidade) {
+                    cidadeExistente = true;
+                    break;
+                }
+            }
+
+            if (!cidadeExistente) {
+                var option = document.createElement('option');
+                option.text = nomeCidade;
+                selectConsultados.add(option);
+            }
+        }
+
+        // Função para armazenar os dados da consulta em cache
+        function cacheConsulta(nomeCidade, infosClima) {
+            var consultasCacheadas = JSON.parse(localStorage.getItem('consultas')) || {};
+            consultasCacheadas[nomeCidade] = infosClima;
+            localStorage.setItem('consultas', JSON.stringify(consultasCacheadas));
+        }
+
+        // Evento de troca de opção no Select
+        document.getElementById('selectConsultados').addEventListener('change', function () {
+            var cidadeSelecionada = this.value;
+            var consultasCacheadas = JSON.parse(localStorage.getItem('consultas')) || {};
+            atualizarDadosCidadeSelecionada()
+        });
+
+        function atualizarDadosCidadeSelecionada() {
+            var nomeCidadeSelecionada = document.getElementById('selectConsultados').value;
+
+            // Atualizar o mapa com a nova cidade
+            fazerRequisicaoPOST();
+            fazerRequisicaoGET();
         }
 
     </script>
