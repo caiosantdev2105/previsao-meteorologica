@@ -13,5 +13,5 @@ Para executar a aplicação (interface):
 1) Clone o repositório Git em sua máquina.
 2) Dentro do diretório do projeto, acesse a pastar "frontend"
 3) Duplo clique no "index.html"
-
+4) E pronto, basta preencher o nome da cidade e clicar em Consultar.
 Observação: Para que a aplicação funcione, ambas as partes deve estar rodando simultaneamente e é necessário conexão com a internet.
