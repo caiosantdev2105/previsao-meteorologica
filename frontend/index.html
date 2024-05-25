@@ -185,12 +185,12 @@
                 alert("Informe uma cidade válida.");
                 return;
             }
-            fazerRequisicaoPOST();
-            fazerRequisicaoGET();
+            fazerRequisicaoPOST(nomeCidade);
+            fazerRequisicaoGET(nomeCidade);
         });
 
         // Função para fazer a requisição POST
-        function fazerRequisicaoPOST() {
+        function fazerRequisicaoPOST(nomeCidade) {
             fetch('http://localhost:3000/backend/coordenadas', {
                 method: 'POST',
                 headers: {
@@ -200,6 +200,7 @@
             })
                 .then(response => response.json())
                 .then(data => {
+                    console.log(data[0])
                     //Recupera os dados de longitude e latitude
                     latitude = data[0]["lat"];
                     longitude = data[0]["lon"];                //Move o mapa até a cidade
@@ -211,7 +212,7 @@
         }
 
         // Função para fazer a requisição GET
-        function fazerRequisicaoGET() {
+        function fazerRequisicaoGET(nomeCidade) {
             fetch(`http://localhost:3000/backend/clima?cidade=${nomeCidade}`, {
                 headers: {
                     'Content-Type': 'application/json; charset=UTF-8'
@@ -219,6 +220,7 @@
             })
                 .then(response => response.json())
                 .then(data => {
+                    console.log(data)
                     infosClima = [{
                         "nome": data.city,
                         "data": data.date,
@@ -383,8 +385,9 @@
             var nomeCidadeSelecionada = document.getElementById('selectConsultados').value;
 
             // Atualizar o mapa com a nova cidade
-            fazerRequisicaoPOST();
-            fazerRequisicaoGET();
+            fazerRequisicaoPOST(nomeCidadeSelecionada);
+            fazerRequisicaoGET(nomeCidadeSelecionada);
+            exibirInformacoes();
         }
 
     </script>
